@@ -20,6 +20,8 @@ aws ec2 run-instances --image-id ami-09d95fab7fff3776c \
 EC2_IP=$(aws ec2 describe-instances --filters "Name=tag:SERVER,Values=springboot_docker_${BUILD_NUMBER}" | grep PublicIpAddress | awk '{print $2}' | cut -d '"' -f 2)
 EC2_ID=$(aws ec2 describe-instances --filters "Name=tag:SERVER,Values=springboot_docker_${BUILD_NUMBER}" | grep InstanceId | awk '{print $2}' | cut -d '"' -f 2)
 
+aws ec2 wait instance-status-ok --instance-ids $EC2_ID
+
 #Install prerequisites
 ssh -o StrictHostKeyChecking=no -i $AWS_KEY ec2-user@$EC2_IP sudo yum update -y
 ssh -i $AWS_KEY ec2-user@$EC2_IP sudo yum install docker -y
