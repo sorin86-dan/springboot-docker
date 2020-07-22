@@ -1,9 +1,9 @@
 #!/bin/bash
 
-AWS_KEY=$0
-AWS_ACCESS_KEY=$1
-AWS_SECRET_KEY=$2
-AWS_SECURITY_GROUP=$3
+AWS_KEY=$1
+AWS_ACCESS_KEY=$2
+AWS_SECRET_KEY=$3
+AWS_SECURITY_GROUP=$4
 
 chmod 400 $AWS_KEY
 aws configure set aws_access_key_id $AWS_ACCESS_KEY && \
