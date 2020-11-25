@@ -38,25 +38,9 @@ pipeline {
             }
         }
 
-        stage('Push containers to ECR') {
-            steps {
-                sh "sudo docker login -u AWS -p ${ECR_PASSWORD} https://${ECR_BASE}"
-                sh "sudo docker tag resources_auth ${ECR_BASE}/resources_auth"
-                sh "sudo docker push ${ECR_BASE}/resources_auth"
-                sh "sudo docker tag resources_db ${ECR_BASE}/resources_db"
-                sh "sudo docker push ${ECR_BASE}/resources_db"
-                sh "sudo docker tag redis ${ECR_BASE}/redis"
-                sh "sudo docker push ${ECR_BASE}/redis"
-            }
-        }
-
         stage('Create EC2 instance') {
             steps {
-                sh "aws ec2 run-instances --image-id ami-09d95fab7fff3776c \
-                          --instance-type t2.micro \
-                          --security-group-ids ${SECURITY_GROUP} \
-                          --key-name ${AWS_KEY} \
-                          --tag-specifications \"ResourceType=instance,Tags=[{Key=SERVER,Value=springboot_docker_${BUILD_NUMBER}}]\""
+                sh "aws ec2 run-instances --image-id ami-09d95fab7fff3776c --instance-type t2.micro --security-group-ids ${SECURITY_GROUP} --key-name ${AWS_KEY} --tag-specifications \"ResourceType=instance,Tags=[{Key=SERVER,Value=springboot_docker_${BUILD_NUMBER}}]\""
                 EC2_IP = sh "aws ec2 describe-instances --filters \"Name=tag:SERVER,Values=springboot_docker_${BUILD_NUMBER}\" | grep PublicIpAddress | awk '{print $2}' | cut -d '\"' -f 2)"
                 EC2_ID = sh "aws ec2 describe-instances --filters \"Name=tag:SERVER,Values=springboot_docker_${BUILD_NUMBER}\" | grep InstanceId | awk '{print $2}' | cut -d '\"' -f 2"
                 sh "aws ec2 wait instance-status-ok --instance-ids ${EC2_ID}"
