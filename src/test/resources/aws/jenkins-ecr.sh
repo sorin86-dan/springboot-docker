@@ -57,3 +57,6 @@ aws ecr delete-repository \
 
 # Delete EC2 instance
 aws ec2 terminate-instances --instance-ids $EC2_ID
+
+# Delete unnecessary Docker resources
+sudo docker system prune -a -f
