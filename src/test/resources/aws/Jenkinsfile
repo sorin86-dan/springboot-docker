@@ -1,0 +1,78 @@
+def ACCESS_KEY = ${AccessKey}
+def SECRET_ACCESS_KEY = ${SecretAccessKey}
+def SECURITY_GROUP = ${SecurityGroup}
+def ECR_BASE = ${ECRBase}
+def EC2_IP = ""
+def EC2_ID = ""
+def AWS_KEY = "AwsKey.pem"
+
+pipeline {
+
+    agent any
+
+    stages {
+        stage('Retrieve code') {
+            steps {
+                git 'https://github.com/sorin86-dan/springboot-docker'
+            }
+        }
+
+        stage('Build code') {
+            steps {
+                sh 'mvn clean install -DskipTests'
+            }
+        }
+
+        stage('Login to ECR and create ECR repo') {
+            steps {
+                sh "aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin ${ECR_BASE}/"
+                sh "aws ecr create-repository --repository-name springboot-docker --region us-east-1"
+            }
+        }
+
+        stage('Create Docker image and push it to ECR') {
+            steps {
+                sh "sudo mvn spring-boot:build-image -DskipTests"
+                sh "sudo docker tag springboot-docker:latest ${ECR_BASE}/springboot-docker:latest"
+                sh "sudo docker push ${ECR_BASE}/springboot-docker:latest"
+            }
+        }
+
+        stage('Create EC2 instance') {
+            steps {
+                sh "aws ec2 run-instances --image-id ami-09d95fab7fff3776c --instance-type t2.micro --security-group-ids ${SECURITY_GROUP} --key-name ${AWS_KEY} --tag-specifications \"ResourceType=instance,Tags=[{Key=SERVER,Value=springboot_docker_${BUILD_NUMBER}}]\""
+                EC2_IP = sh "aws ec2 describe-instances --filters \"Name=tag:SERVER,Values=springboot_docker_${BUILD_NUMBER}\" | grep PublicIpAddress | awk '{print $2}' | cut -d '\"' -f 2)"
+                EC2_ID = sh "aws ec2 describe-instances --filters \"Name=tag:SERVER,Values=springboot_docker_${BUILD_NUMBER}\" | grep InstanceId | awk '{print $2}' | cut -d '\"' -f 2"
+                sh "aws ec2 wait instance-status-ok --instance-ids ${EC2_ID}"
+                sh "ssh -o StrictHostKeyChecking=no -i ${AWS_KEY} ec2-user@${EC2_IP} sudo yum update -y"
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} sudo yum install docker -y"
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} sudo service docker start"
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} sudo usermod -a -G docker ec2-user"
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} aws configure set aws_access_key_id ${ACCESS_KEY}"
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} aws configure set aws_secret_access_key ${SECRET_ACCESS_KEY}"
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} aws configure set default.region us-east-1"
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} \"aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_BASE}/ && docker pull ${ECR_BASE}/springboot-docker:latest\""
+                sh "ssh -i ${AWS_KEY} ec2-user@${EC2_IP} docker run -d -p 8081:8081 ${ECR_BASE}/springboot-docker"
+            }
+        }
+
+        stage('Run tests') {
+            steps {
+                sh "mvn clean test -Dec2-ip=${EC2_IP}"
+            }
+        }
+    }
+
+    post {
+        always {
+            step([$class: 'Publisher', reportFilenamePattern: '**/testng-results.xml'])
+            sh "aws ecr delete-repository --repository-name springboot-docker --force"
+            sh "aws ec2 terminate-instances --instance-ids ${EC2_ID}"
+        }
+    }
+}
