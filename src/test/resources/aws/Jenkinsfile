@@ -75,6 +75,7 @@ pipeline {
             step([$class: 'Publisher', reportFilenamePattern: '**/testng-results.xml'])
             sh "aws ecr delete-repository --repository-name springboot-docker --force"
             sh "aws ec2 terminate-instances --instance-ids ${EC2_ID}"
+            sh "docker system prune -a -f"
         }
     }
 }
