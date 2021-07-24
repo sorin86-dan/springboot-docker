@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="TestSuite">
+    <test name="testAPI">
+        <parameter name="ec2-ip" value="localhost">
+            <classes>
+                <class name="com.testing.DefaultTest"></class>
+            </classes>
+        </parameter>
+    </test>
+</suite>
