@@ -29,6 +29,7 @@ ssh -i $AWS_KEY ec2-user@$EC2_IP sudo service docker start
 ssh -i $AWS_KEY ec2-user@$EC2_IP sudo usermod -a -G docker ec2-user
 ssh -i $AWS_KEY ec2-user@$EC2_IP sudo yum install git -y
 ssh -i $AWS_KEY ec2-user@$EC2_IP sudo yum install maven -y
+ssh -i $AWS_KEY ec2-user@$EC2_IP sudo amazon-linux-extras install java-openjdk11
 ssh -i $AWS_KEY ec2-user@$EC2_IP git clone https://github.com/sorin86-dan/springboot-docker.git
 
 #Build everything and run tests
