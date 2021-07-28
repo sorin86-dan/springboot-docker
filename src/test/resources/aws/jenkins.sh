@@ -29,12 +29,11 @@ ssh -i $AWS_KEY ec2-user@$EC2_IP sudo service docker start
 ssh -i $AWS_KEY ec2-user@$EC2_IP sudo usermod -a -G docker ec2-user
 ssh -i $AWS_KEY ec2-user@$EC2_IP sudo yum install git -y
 ssh -i $AWS_KEY ec2-user@$EC2_IP sudo yum install maven -y
-ssh -i $AWS_KEY ec2-user@$EC2_IP sudo amazon-linux-extras install java-openjdk11
 ssh -i $AWS_KEY ec2-user@$EC2_IP git clone https://github.com/sorin86-dan/springboot-docker.git
 
 #Build everything and run tests
 ssh -i $AWS_KEY ec2-user@$EC2_IP "cd springboot-docker ; mvn clean install -DskipTests"
-ssh -i $AWS_KEY ec2-user@$EC2_IP "cd springboot-docker ; mvn spring-boot:build-image -DskipTests"
+ssh -i $AWS_KEY ec2-user@$EC2_IP "cd springboot-docker ; sudo mvn spring-boot:build-image -DskipTests"
 ssh -i $AWS_KEY ec2-user@$EC2_IP docker run -d -p 8081:8081 springboot-docker
 ssh -i $AWS_KEY ec2-user@$EC2_IP "cd springboot-docker ; mvn clean test -Dec2-ip=$EC2_IP"
 scp -i $AWS_KEY ec2-user@$EC2_IP:/home/ec2-user/springboot-docker/target/surefire-reports/testng-results.xml .
